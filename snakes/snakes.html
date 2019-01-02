@@ -8,22 +8,25 @@ var canv;
 var canvas_width = 1280;
 var canvas_height = 640;
 
-var unit_length = 20;
+var unit_length = 5;
 
 var top_width = canvas_width / unit_length;
 var top_height = canvas_height / unit_length;
 
 var initial_length = 5;
-var game_speed = 25;
+var game_speed = 20;
 
 var initial_add_length = 1;
 var initial_eat_range = 1;
 var initial_eat_range_square = initial_eat_range * initial_eat_range;
 
 var bonus = [];
-var num_of_bonus = 5;
+var num_of_bonus = 20;
 var type_of_bonus = 4;
 var bonus_state = 0;
+var is_pause = 0;
+
+var highest_score = 0;
 
 function square(x) { return x * x; }
 
@@ -36,8 +39,11 @@ window.onload = function()
 
     document.addEventListener("keydown", function(evt) { keyPush(evt, 0, 37, 38, 39, 40); });
     document.addEventListener("keydown", function(evt) { keyPush(evt, 1, 65, 87, 68, 83); });
+	<!-- document.addEventListener("keydown", function(evt) { keyPush(evt, 2, 37, 38, 39, 40); }); -->
+    <!-- document.addEventListener("keydown", function(evt) { keyPush(evt, 3, 65, 87, 68, 83); }); -->
     document.addEventListener("keydown", function(evt) { keyPush(evt, 2, 74, 73, 76, 75); });
-    document.addEventListener("keydown", function(evt) { keyPush(evt, 3, 70, 84, 72, 71); });
+    document.addEventListener("keydown", function(evt) { keyPush(evt, 3, 70, 75, 72, 71); });
+	document.addEventListener("keydown", function(evt) { if(evt.keyCode == 32){is_pause^=1;}});
 
     for (var bi = 0; bi < num_of_bonus; ++bi)
     {
@@ -118,16 +124,18 @@ var players = [new player("blue"), new player("lime"), new player("yellow"), new
 
 function show_bonus()
 {
+	if(is_pause) return;
 	bonus_state = (bonus_state + 1) % game_speed;
 	for (var bi = 0; bi < num_of_bonus; ++bi)
     {
-    	if (bonus_state * 2 < game_speed) ctx.fillStyle = bonus[bi].color[1];
+    	if (bonus_state < game_speed/2) ctx.fillStyle = bonus[bi].color[1];
     	else ctx.fillStyle = bonus[bi].color[0];
    		ctx.fillRect(bonus[bi].x * unit_length, bonus[bi].y * unit_length, unit_length - 1, unit_length - 1);
    	}
 }
 
 function game() {
+	if(is_pause) return;
     ctx.fillStyle = "black";
     ctx.fillRect(0, 0, canv.width, canv.height);
     for (var pi = 0; pi < players.length; ++pi)
@@ -154,14 +162,19 @@ function game() {
 	        for (var i = 0; i < players[pi].trail.length; i++)
 	        {
 	            ctx.fillRect(players[pi].trail[i].x * unit_length, players[pi].trail[i].y * unit_length, unit_length - 1, unit_length - 1);
-	            if (players[pi].trail[i].x == players[pi].px && players[pi].trail[i].y == players[pi].py)
-	            {
-	                if (players[pi].xv != 0 || players[pi].yv != 0)
-	                {
-	                    players[pi].fail();
-	                }
-	            }
 	        }
+			for(var j =0; j<players.length;j++)
+				for (var i = 0; i < players[j].trail.length; i++)
+				{
+					if (players[j].trail[i].x == players[pi].px && players[j].trail[i].y == players[pi].py)
+					{
+						if (players[pi].xv != 0 || players[pi].yv != 0)
+						{
+							players[pi].fail();
+						}
+					}
+				}
+			
 
 	        if (players[pi].px < 0)
 	        {
@@ -217,29 +230,25 @@ function keyPush(evt, player_num, left, up, right, down)
     switch (evt.keyCode)
     {
 	    case left:
-	        if (players[player_num].xv == 0)
-	        {
+	        if (players[player_num].xv == 0) {
 	            players[player_num].xv = -1;
 	            players[player_num].yv = 0;
 	        }
 	        break;
 	    case up:
-	        if (players[player_num].yv == 0)
-	        {
+	        if (players[player_num].yv == 0) {
 	            players[player_num].xv = 0;
 	            players[player_num].yv = -1;
 	        }
 	        break;
 	    case right:
-	        if (players[player_num].xv == 0)
-	        {
+	        if (players[player_num].xv == 0) {
 	            players[player_num].xv = 1;
 	            players[player_num].yv = 0;
 	        }
 	        break;
 	    case down:
-	        if (players[player_num].yv == 0)
-	        {
+	        if (players[player_num].yv == 0) {
 	            players[player_num].xv = 0;
 	            players[player_num].yv = 1;
 	        }
