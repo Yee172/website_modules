@@ -1,0 +1,255 @@
+<html>
+<head>
+<script>
+"use strict"
+
+var ctx;
+var canv;
+var canvas_width = 1280;
+var canvas_height = 640;
+
+var unit_length = 20;
+
+var top_width = canvas_width / unit_length;
+var top_height = canvas_height / unit_length;
+
+var initial_length = 5;
+var game_speed = 25;
+
+var initial_add_length = 1;
+var initial_eat_range = 1;
+var initial_eat_range_square = initial_eat_range * initial_eat_range;
+
+var bonus = [];
+var num_of_bonus = 5;
+var type_of_bonus = 4;
+var bonus_state = 0;
+
+function square(x) { return x * x; }
+
+window.onload = function()
+{
+    canv = document.getElementById("snakeses");
+    canv.width = canvas_width;
+    canv.height = canvas_height;
+    ctx = canv.getContext("2d");
+
+    document.addEventListener("keydown", function(evt) { keyPush(evt, 0, 37, 38, 39, 40); });
+    document.addEventListener("keydown", function(evt) { keyPush(evt, 1, 65, 87, 68, 83); });
+    document.addEventListener("keydown", function(evt) { keyPush(evt, 2, 74, 73, 76, 75); });
+    document.addEventListener("keydown", function(evt) { keyPush(evt, 3, 70, 75, 72, 71); });
+
+    for (var bi = 0; bi < num_of_bonus; ++bi)
+    {
+    	bonus.push(new upgrade(Math.floor(Math.random() * type_of_bonus)));
+    }
+
+    setInterval(game, 1000 / game_speed);
+    setInterval(show_bonus, 1000 / game_speed);
+}
+
+let player = class
+{
+    constructor(color)
+    {
+        this.color = color;
+        this.px = Math.floor(Math.random() * top_width);
+        this.py = Math.floor(Math.random() * top_height);
+        this.xv = 0;
+        this.yv = 0;
+        this.move_round = 1;
+        this.trail = [];
+        this.tail = initial_length;
+        this.add_length = initial_add_length;
+        this.eat_range = initial_eat_range;
+        this.eat_range_square = initial_eat_range_square;
+    }
+
+    fail()
+    {
+        this.px = Math.floor(Math.random() * top_width);
+        this.py = Math.floor(Math.random() * top_height);
+        this.xv = 0;
+        this.yv = 0;
+        this.move_round = 1;
+        this.trail = [];
+        this.tail = initial_length;
+        this.add_length = initial_add_length;
+        this.eat_range = initial_eat_range;
+        this.eat_range_square = initial_eat_range_square;
+    }
+}
+
+let upgrade = class
+{
+	constructor(type)
+	{
+		this.type = type;
+		this.x = Math.floor(Math.random() * top_width);
+		this.y = Math.floor(Math.random() * top_height);
+		this.color = ["red", this.change_color(type)];
+	}
+
+	change_color(type)
+	{
+		switch (this.type)
+		{
+			case 0:
+				return "red";
+			case 1:
+				return "magenta";
+			case 2:
+				return "aqua";
+			case 3:
+				return "olive";
+		}
+	}
+
+	update(type)
+	{
+		this.type = type;
+		this.x = Math.floor(Math.random() * top_width);
+		this.y = Math.floor(Math.random() * top_height);
+		this.color = ["red", this.change_color(type)];
+	}
+}
+
+var players = [new player("blue"), new player("lime"), new player("yellow"), new player("white")];
+
+function show_bonus()
+{
+	bonus_state = (bonus_state + 1) % game_speed;
+	for (var bi = 0; bi < num_of_bonus; ++bi)
+    {
+    	if (bonus_state * 2 < game_speed) ctx.fillStyle = bonus[bi].color[1];
+    	else ctx.fillStyle = bonus[bi].color[0];
+   		ctx.fillRect(bonus[bi].x * unit_length, bonus[bi].y * unit_length, unit_length - 1, unit_length - 1);
+   	}
+}
+
+function game() {
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canv.width, canv.height);
+    for (var pi = 0; pi < players.length; ++pi)
+    {
+    	ctx.fillStyle = players[pi].color;
+    	ctx.strokeStyle = ctx.fillStyle;
+	    
+    	for (var round = 0; round < players[pi].move_round; ++round)
+    	{
+    		players[pi].px += players[pi].xv;
+	        players[pi].py += players[pi].yv;
+	        
+	        console.log("player", pi, ":", players[pi].tail);
+
+	        if (players[pi].trail.length > 0)
+	        {
+	            ctx.beginPath();
+	            ctx.lineWidth = players[pi].move_round;
+	            ctx.arc(players[pi].trail[players[pi].trail.length - 1].x * unit_length + unit_length / 2, players[pi].trail[players[pi].trail.length - 1].y * unit_length + unit_length / 2, players[pi].eat_range * unit_length - unit_length / 2, 0, Math.PI * 2);
+	            ctx.stroke();
+	            ctx.closePath();
+	        }
+
+	        for (var i = 0; i < players[pi].trail.length; i++)
+	        {
+	            ctx.fillRect(players[pi].trail[i].x * unit_length, players[pi].trail[i].y * unit_length, unit_length - 1, unit_length - 1);
+	            if (players[pi].trail[i].x == players[pi].px && players[pi].trail[i].y == players[pi].py)
+	            {
+	                if (players[pi].xv != 0 || players[pi].yv != 0)
+	                {
+	                    players[pi].fail();
+	                }
+	            }
+	        }
+
+	        if (players[pi].px < 0)
+	        {
+	            players[pi].px = top_width - 1;
+	        }
+	        if (players[pi].px > top_width - 1)
+	        {
+	            players[pi].px = 0;
+	        }
+	        if (players[pi].py < 0)
+	        {
+	            players[pi].py = top_height - 1;
+	        }
+	        if (players[pi].py > top_height - 1)
+	        {
+	            players[pi].py = 0;
+	        }
+	        players[pi].trail.push({x: players[pi].px, y: players[pi].py});
+	        while (players[pi].trail.length > players[pi].tail)
+	        {
+	            players[pi].trail.shift();
+	        }
+
+	        for (var bi = 0; bi < num_of_bonus; ++bi)
+	        {
+	            if (square(bonus[bi].x - players[pi].px) + square(bonus[bi].y - players[pi].py) < players[pi].eat_range_square)
+	            {
+	            	switch (bonus[bi].type)
+	            	{
+	            		case 0:
+	            			players[pi].tail += players[pi].add_length;
+	            			break;
+	            		case 1:
+	            			players[pi].add_length += 1;
+	            			break;
+	            		case 2:
+	            			players[pi].eat_range += 1;
+	            			players[pi].eat_range_square = square(players[pi].eat_range);
+	            			break;
+	            		case 3:
+	            			players[pi].move_round = Math.min(players[pi].move_round + 1, 3);
+	            			break;
+	            	}
+	                bonus[bi].update(Math.floor(Math.random() * type_of_bonus));
+	            }
+	        }
+    	}
+    }
+}
+
+function keyPush(evt, player_num, left, up, right, down)
+{
+    switch (evt.keyCode)
+    {
+	    case left:
+	        if (players[player_num].xv == 0)
+	        {
+	            players[player_num].xv = -1;
+	            players[player_num].yv = 0;
+	        }
+	        break;
+	    case up:
+	        if (players[player_num].yv == 0)
+	        {
+	            players[player_num].xv = 0;
+	            players[player_num].yv = -1;
+	        }
+	        break;
+	    case right:
+	        if (players[player_num].xv == 0)
+	        {
+	            players[player_num].xv = 1;
+	            players[player_num].yv = 0;
+	        }
+	        break;
+	    case down:
+	        if (players[player_num].yv == 0)
+	        {
+	            players[player_num].xv = 0;
+	            players[player_num].yv = 1;
+	        }
+	        break;
+    }
+}
+
+</script>
+</head>
+<body>
+	<canvas id="snakeses"></canvas>
+</body>
+</html>
