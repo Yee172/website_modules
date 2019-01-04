@@ -1,0 +1,212 @@
+<html>
+	<head>
+		<script>
+"use strict"
+
+var canv;
+var ctx;
+var canvas_width = 1280;
+var canvas_height = 640;
+var unit_size = 20.0;
+var resistance = 0.5;
+var push_force = 1.0;
+var rocket_length = 40.0;
+var unit_theta = Math.PI / 180;
+var half_open_angle = 15 / 180 * Math.PI;
+var fire_place_ratio = 3.0 / 4;
+var fire_height_ratio = 2.0 / 4;
+var game_speed = 30;
+
+window.onload = function()
+{
+	canv = document.getElementById('asteroids');
+	canv.width = canvas_width;
+	canv.height = canvas_height;
+	ctx = canv.getContext('2d');
+	document.addEventListener("keydown", function(evt) { key_push(evt, 0, 87, 65, 68, 83); });
+	setInterval(game, 1000 / 30);
+}
+
+let point = class
+{
+	constructor(x = (Math.random() + 0.33) * canvas_width * 0.6, y = (Math.random() + 0.33) * canvas_height * 0.6)
+	{
+		this.x = x;
+		this.y = y;
+	}
+
+	copy()
+	{
+		return new point(this.x, this.y);
+	}
+
+	check()
+	{
+		if (this.x < 0)
+		{
+			this.x = canvas_width - 1;
+		}
+		if (this.x > canvas_width)
+		{
+			this.x = 0;
+		}
+		if (this.y < 0)
+		{
+			this.y = canvas_height - 1;
+		}
+		if (this.y > canvas_height)
+		{
+			this.y = 0;
+		}
+	}
+}
+
+let vector = class
+{
+	constructor(x, y)
+	{
+		this.x = x;
+		this.y = y;
+	}
+
+	add(b)
+	{
+		return new vector(this.x + b.x, this.y + b.y);
+	}
+}
+
+let bullet = class
+{
+	constructor(position, velocity, life_span, existed)
+	{
+		this.position = position;
+		this.velocity = velocity;
+		this.life_span = life_span;
+		this.existed = existed;
+	}
+
+	move_and_not_expire()
+	{
+		this.position.x += this.velocity.x;
+		this.position.y += this.velocity.y;
+		this.position.check();
+		this.existed += 1;
+		return this.life_span > this.existed;
+	}
+
+	show()
+	{
+		ctx.fillRect(this.position.x - 1, this.position.y - 1, 2, 2);
+	}
+}
+
+let player = class
+{
+	constructor(color)
+	{
+		this.color = color;
+		this.top = new point();
+		this.angle = Math.random() * Math.PI * 2;
+		this.velocity = new vector(0, 0);
+		this.acceleration = new vector(0, 0);
+		this.strong = 1;
+		this.bullet_last_time = 90;
+		this.bullet_speed = 20;
+		this.bullets = [];
+		this.shooting = game_speed;
+	}
+
+	accelerate()
+	{
+		this.acceleration = this.acceleration.add(new vector(push_force * Math.cos(this.angle), push_force * Math.sin(this.angle)));
+	}
+
+	move()
+	{
+		this.velocity = this.velocity.add(this.acceleration);
+		this.top.x += this.velocity.x;
+		this.top.y += this.velocity.y;
+		this.top.check();
+	}
+
+	shot()
+	{
+		if (this.shooting === game_speed)
+		{
+			this.bullets.push(new bullet(this.top.copy(), new vector(this.bullet_speed * Math.cos(this.angle), this.bullet_speed * Math.sin(this.angle)), this.bullet_last_time, 0));
+			this.shooting = 0;
+		}
+	}
+
+	draw()
+	{
+		this.move();
+		if (this.shooting < game_speed) ++this.shooting;
+		// this.angle += unit_theta;
+		// this.acceleration.x = Math.cos(this.angle);
+		// this.acceleration.y = Math.sin(this.angle);
+
+		ctx.strokeStyle = this.color;
+		ctx.lineWidth = this.strong;
+
+		ctx.beginPath();
+		ctx.moveTo(this.top.x + rocket_length * Math.cos(this.angle + Math.PI + half_open_angle), this.top.y + rocket_length * Math.sin(this.angle + Math.PI + half_open_angle));
+		ctx.lineTo(this.top.x, this.top.y);
+		ctx.lineTo(this.top.x + rocket_length * Math.cos(this.angle + Math.PI - half_open_angle), this.top.y + rocket_length * Math.sin(this.angle + Math.PI - half_open_angle));
+		ctx.stroke();
+
+		ctx.beginPath();
+		ctx.moveTo(this.top.x + rocket_length * Math.cos(this.angle + Math.PI + half_open_angle) * fire_place_ratio, this.top.y + rocket_length * Math.sin(this.angle + Math.PI + half_open_angle) * fire_place_ratio);
+		ctx.lineTo(this.top.x + rocket_length * Math.cos(this.angle + Math.PI - half_open_angle) * fire_place_ratio, this.top.y + rocket_length * Math.sin(this.angle + Math.PI - half_open_angle) * fire_place_ratio);
+		ctx.closePath();
+		ctx.stroke();
+
+		ctx.fillStyle = this.color;
+		var next_bullets = [];
+		for (var bi = 0; bi < this.bullets.length; ++bi)
+		{
+			this.bullets[bi].show();
+			if (this.bullets[bi].move_and_not_expire())
+			{
+				next_bullets.push(this.bullets[bi]);
+			}
+		}
+		this.bullets = next_bullets;
+	}
+}
+
+var players = [new player('lime')]
+
+function game()
+{
+	ctx.fillStyle = 'black';
+	ctx.fillRect(0, 0, canv.width, canv.height);
+	players[0].draw();
+}
+
+function key_push(evt, player, forward, turn_left, turn_right, fire)
+{
+	switch (evt.keyCode)
+	{
+		case forward:
+			players[player].accelerate();
+			break;
+		case turn_left:
+			players[player].angle -= unit_theta;
+			break;
+		case turn_right:
+			players[player].angle += unit_theta;
+			break;
+		case fire:
+			players[player].shot();
+			break;
+	}
+}
+
+
+		</script>
+	</head>
+	<body>
+		<canvas id='asteroids'></canvas>
+	</body>
+</html>
