@@ -1,7 +1,7 @@
 # Website_Modules
 Now we only have a very stupid html snake game, have fun!
 
-#### Snakes
+## Snakes
 
 | #Player |        Control        |
 | :-----: | :-------------------: |
