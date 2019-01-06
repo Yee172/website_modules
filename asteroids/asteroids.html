@@ -24,7 +24,7 @@ window.onload = function()
 	canv.height = canvas_height;
 	ctx = canv.getContext('2d');
 	document.addEventListener("keydown", function(evt) { key_push(evt, 0, 87, 65, 68, 83); });
-	setInterval(game, 1000 / 30);
+	setInterval(game, 1000 / game_speed);
 }
 
 let point = class
